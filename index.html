@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#0b1020" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>今天练了吗</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./assets/icons/icon-192-v3.png" sizes="192x192" type="image/png" />
+    <link rel="icon" href="./assets/icons/icon-512-v3.png" sizes="512x512" type="image/png" />
+    <link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon-v3.png" sizes="180x180" />
+    <link rel="apple-touch-icon-precomposed" href="./assets/icons/apple-touch-icon-v3.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg"></div>
+    <main class="container" id="app">
+      <header class="header">
+        <div class="brand">
+          <button class="logoBtn" id="avatarBtn" type="button" title="上传/更换照片">
+            <img class="logoImg" id="avatarImg" alt="头像" />
+            <span class="logoFallback" id="avatarFallback" aria-hidden="true">今</span>
+          </button>
+          <input
+            id="avatarInput"
+            class="srOnly"
+            type="file"
+            accept="image/*"
+          />
+          <div class="brandText">
+            <h1 class="title">今天练了吗</h1>
+            <p class="subtitle" id="moodLine">慢慢来，也是在前进。</p>
+          </div>
+        </div>
+        <div class="headerActions">
+          <button class="btn btnGhost" id="btnExportCsv" type="button">导出 CSV</button>
+          <button class="btn btnDanger btnGhost" id="btnClearAll" type="button">清空记录</button>
+        </div>
+      </header>
+
+      <section class="grid">
+        <section class="card" aria-labelledby="profileTitle">
+          <div class="cardHeader">
+            <h2 class="cardTitle" id="profileTitle">初始设置</h2>
+            <span class="badge" id="profileStatus">未保存</span>
+          </div>
+
+          <form id="profileForm" class="form">
+            <div class="field">
+              <label class="label" for="heightCm">身高（cm）</label>
+              <input class="input" id="heightCm" name="heightCm" inputmode="decimal" placeholder="例如：175" />
+              <div class="hint" id="heightHint"></div>
+            </div>
+            <div class="field">
+              <label class="label" for="startWeightKg">起始体重（kg）</label>
+              <input class="input" id="startWeightKg" name="startWeightKg" inputmode="decimal" placeholder="例如：78.5" />
+              <div class="hint" id="startHint"></div>
+            </div>
+            <div class="field">
+              <label class="label" for="targetWeightKg">目标体重（kg）</label>
+              <input class="input" id="targetWeightKg" name="targetWeightKg" inputmode="decimal" placeholder="例如：68" />
+              <div class="hint" id="targetHint"></div>
+            </div>
+            <div class="actions">
+              <button class="btn" id="btnSaveProfile" type="submit">保存设置</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card" aria-labelledby="todayTitle">
+          <div class="cardHeader">
+            <h2 class="cardTitle" id="todayTitle">今日记录</h2>
+            <span class="badge badgeSoft" id="todayStatus">待记录</span>
+          </div>
+
+          <form id="entryForm" class="form">
+            <div class="field">
+              <label class="label" for="entryDate">日期</label>
+              <input class="input" id="entryDate" name="entryDate" type="date" />
+              <div class="hint" id="dateHint"></div>
+            </div>
+            <div class="field">
+              <label class="label" for="entryWeightKg">体重（kg）</label>
+              <input class="input" id="entryWeightKg" name="entryWeightKg" inputmode="decimal" placeholder="例如：76.8" />
+              <div class="hint" id="weightHint"></div>
+            </div>
+            <div class="actions">
+              <button class="btn" id="btnSaveEntry" type="submit">保存 / 更新</button>
+              <button class="btn btnGhost" id="btnFillLatest" type="button">填入最近体重</button>
+            </div>
+          </form>
+        </section>
+      </section>
+
+      <section class="card metricsCard" aria-label="当前指标">
+        <div class="metrics">
+          <div class="metric">
+            <div class="metricLabel">当前 BMI</div>
+            <div class="metricValue" id="metricBmi">—</div>
+            <div class="metricSub" id="metricBmiSub">先保存身高与体重</div>
+          </div>
+          <div class="metric">
+            <div class="metricLabel">相比昨日</div>
+            <div class="metricValue" id="metricDelta">—</div>
+            <div class="metricSub" id="metricDeltaSub">从第二条开始计算</div>
+          </div>
+          <div class="metric">
+            <div class="metricLabel">距离目标</div>
+            <div class="metricValue" id="metricToGoal">—</div>
+            <div class="metricSub" id="metricToGoalSub">需要目标体重</div>
+          </div>
+        </div>
+        <div class="statusLine" id="statusLine" role="status" aria-live="polite"></div>
+      </section>
+
+      <section class="card" aria-labelledby="chartTitle">
+        <div class="cardHeader">
+          <h2 class="cardTitle" id="chartTitle">体重变化曲线</h2>
+          <div class="tiny" id="chartMeta">—</div>
+        </div>
+        <div class="chartWrap">
+          <canvas id="weightChart" height="110" aria-label="体重趋势折线图"></canvas>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="historyTitle">
+        <div class="cardHeader">
+          <h2 class="cardTitle" id="historyTitle">历史记录</h2>
+          <div class="tiny" id="historyMeta">—</div>
+        </div>
+
+        <div class="tableWrap">
+          <table class="table" id="historyTable">
+            <thead>
+              <tr>
+                <th>日期</th>
+                <th class="right">当前体重（kg）</th>
+                <th class="right">BMI</th>
+                <th class="right">相比昨日（kg）</th>
+                <th class="right">操作</th>
+              </tr>
+            </thead>
+            <tbody id="historyTbody">
+              <tr>
+                <td colspan="5" class="empty">还没有记录。今天就从一次小小的开始。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <div class="footerInner">
+          <span class="tiny">数据仅保存在你的浏览器本地（localStorage）。</span>
+          <span class="tiny">做得很好，哪怕今天只是记录了一次。</span>
+        </div>
+      </footer>
+    </main>
+
+    <script src="./vendor/chart.umd.min.js"></script>
+    <script src="./app.js" defer></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+        });
+      }
+    </script>
+  </body>
+</html>
