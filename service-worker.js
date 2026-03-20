@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 
 // Update this string to bust the cache on new releases.
-const CACHE_VERSION = "jlm-pwa-v3";
+const CACHE_VERSION = "jlm-pwa-v4";
 
 const APP_SHELL = [
   "./",

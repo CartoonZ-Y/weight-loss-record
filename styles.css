@@ -89,6 +89,92 @@ body{
 .logoBtn:hover{filter:saturate(1.05)}
 .logoBtn:active{transform:translateY(1px)}
 
+.bgBtn{
+  width:78px;
+  height:44px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  cursor:pointer;
+  box-shadow:0 10px 40px rgba(0,0,0,.22);
+  padding:0 12px;
+  font-size:13px;
+  letter-spacing:.02em;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  overflow:hidden;
+}
+.bgBtn:hover{filter:saturate(1.05)}
+.bgBtn:focus{outline:none; box-shadow:var(--ring)}
+.bgBtn:active{transform:translateY(1px)}
+
+.bgMenu{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.45);
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding-top:90px;
+  z-index:50;
+}
+
+#bgMenu[hidden]{
+  display:none !important;
+}
+
+.bgMenuPanel{
+  width:min(420px, calc(100vw - 32px));
+  border-radius:18px;
+  border:1px solid var(--border);
+  background:linear-gradient(180deg, var(--card2), var(--card));
+  box-shadow:var(--shadow);
+  backdrop-filter: blur(10px);
+  padding:14px;
+}
+
+.bgMenuTitle{
+  font-size:13px;
+  color:var(--muted);
+  margin:2px 2px 10px;
+}
+
+.bgMenuActions{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.bgMenuBtn{
+  width:100%;
+  border-radius:14px;
+  border:1px solid rgba(125,211,252,.28);
+  background:linear-gradient(135deg, rgba(125,211,252,.18), rgba(167,243,208,.10));
+  color:var(--text);
+  padding:12px 12px;
+  font-size:14px;
+  cursor:pointer;
+}
+
+.bgMenuBtn:hover{filter:saturate(1.05)}
+.bgMenuBtn:focus{outline:none; box-shadow:var(--ring)}
+.bgMenuBtn:active{transform:translateY(1px)}
+
+.bgMenuBtnGhost{
+  border-color:var(--border);
+  background:rgba(255,255,255,.03);
+  color:var(--text);
+}
+
+.bgMenuBtnCancel{
+  border-color:rgba(255,255,255,.14);
+  background:transparent;
+  color:var(--muted);
+}
+
 .logoImg{
   position:absolute;
   inset:0;

@@ -2,8 +2,9 @@
 
 const STORAGE_KEY = "jlm_weight_tracker_v1";
 const AVATAR_KEY = "jlm_weight_tracker_avatar_v1";
+const BG_KEY = "jlm_weight_tracker_bg_v1";
 
-/** @typedef {{ heightCm:number, startWeightKg:number, targetWeightKg:number, updatedAt:number }} Profile */
+/** @typedef {{ heightCm:number, startWeightKg:number|null, targetWeightKg:number, updatedAt:number }} Profile */
 /** @typedef {{ date:string, weightKg:number, createdAt:number }} Entry */
 /** @typedef {{ profile: Profile|null, entries: Entry[] }} Store */
 
@@ -39,10 +40,15 @@ function saveStore(store) {
 function sanitizeProfile(profile) {
   if (!profile) return null;
   const heightCm = toNumber(profile.heightCm);
-  const startWeightKg = toNumber(profile.startWeightKg);
+  const startWeightRaw = profile.startWeightKg;
+  const startWeightKg =
+    startWeightRaw === null || startWeightRaw === undefined || String(startWeightRaw).trim() === ""
+      ? null
+      : toNumber(startWeightRaw);
   const targetWeightKg = toNumber(profile.targetWeightKg);
   const updatedAt = typeof profile.updatedAt === "number" ? profile.updatedAt : Date.now();
-  if (!isFinite(heightCm) || !isFinite(startWeightKg) || !isFinite(targetWeightKg)) return null;
+  if (!isFinite(heightCm) || !isFinite(targetWeightKg)) return null;
+  if (startWeightKg !== null && !isFinite(startWeightKg)) return null;
   return { heightCm, startWeightKg, targetWeightKg, updatedAt };
 }
 
@@ -115,9 +121,15 @@ function isValidDateKey(s) {
 function validateProfile(profile) {
   const errors = {};
   if (!(profile.heightCm >= 50 && profile.heightCm <= 250)) errors.heightCm = "身高看起来不太对（50–250cm）";
-  if (!(profile.startWeightKg >= 20 && profile.startWeightKg <= 300)) errors.startWeightKg = "起始体重看起来不太对（20–300kg）";
+  if (
+    profile.startWeightKg !== null &&
+    !(profile.startWeightKg >= 20 && profile.startWeightKg <= 300)
+  ) {
+    errors.startWeightKg = "起始体重看起来不太对（20–300kg）";
+  }
   if (!(profile.targetWeightKg >= 20 && profile.targetWeightKg <= 300)) errors.targetWeightKg = "目标体重看起来不太对（20–300kg）";
   if (
+    profile.startWeightKg !== null &&
     isFinite(profile.startWeightKg) &&
     isFinite(profile.targetWeightKg) &&
     profile.targetWeightKg >= profile.startWeightKg
@@ -187,6 +199,14 @@ const inAvatar = $("avatarInput");
 const imgAvatar = $("avatarImg");
 const spanAvatarFallback = $("avatarFallback");
 
+const btnBg = $("bgBtn");
+const inBg = $("bgInput");
+const elBg = document.querySelector(".bg");
+const bgMenu = $("bgMenu");
+const btnChooseBg = $("bgChooseBtn");
+const btnResetBg = $("bgResetBtn");
+const btnCloseBg = $("bgCloseBtn");
+
 const profileForm = $("profileForm");
 const entryForm = $("entryForm");
 
@@ -205,6 +225,8 @@ const hintWeight = $("weightHint");
 
 const btnFillLatest = $("btnFillLatest");
 const btnExportCsv = $("btnExportCsv");
+const btnImportCsv = $("btnImportCsv");
+const inImportCsv = $("importCsvInput");
 const btnClearAll = $("btnClearAll");
 
 const metricBmi = $("metricBmi");
@@ -250,6 +272,37 @@ function renderAvatar() {
   }
 }
 
+function loadBgImage() {
+  try {
+    const v = localStorage.getItem(BG_KEY);
+    return typeof v === "string" && v.startsWith("data:image/") ? v : "";
+  } catch {
+    return "";
+  }
+}
+
+function saveBgImage(dataUrl) {
+  if (!dataUrl) localStorage.removeItem(BG_KEY);
+  else localStorage.setItem(BG_KEY, dataUrl);
+}
+
+function renderBgImage() {
+  const dataUrl = loadBgImage();
+  if (!elBg) return;
+  if (!dataUrl) {
+    // Clear inline override to let CSS default gradient apply.
+    elBg.style.removeProperty("background");
+    elBg.style.removeProperty("backgroundBlendMode");
+    elBg.style.removeProperty("filter");
+    return;
+  }
+
+  // Use a dark overlay to keep text readable.
+  elBg.style.backgroundBlendMode = "multiply";
+  elBg.style.background =
+    `linear-gradient(180deg, rgba(11,16,32,.35), rgba(11,16,32,.72)), url(${dataUrl}) center/cover no-repeat`;
+}
+
 async function fileToSmallDataUrl(file) {
   if (!file || !file.type || !file.type.startsWith("image/")) throw new Error("not_image");
 
@@ -267,6 +320,31 @@ async function fileToSmallDataUrl(file) {
   ctx.drawImage(bitmap, 0, 0, w, h);
 
   const quality = 0.86;
+  try {
+    return canvas.toDataURL("image/webp", quality);
+  } catch {
+    return canvas.toDataURL("image/jpeg", quality);
+  }
+}
+
+async function fileToBgDataUrl(file) {
+  if (!file || !file.type || !file.type.startsWith("image/")) throw new Error("not_image");
+
+  const bitmap = await createImageBitmap(file);
+  // Keep payload smaller to avoid localStorage limits on iOS.
+  const maxSide = 1024;
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+  const w = Math.max(1, Math.round(bitmap.width * scale));
+  const h = Math.max(1, Math.round(bitmap.height * scale));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d", { alpha: false });
+  if (!ctx) throw new Error("no_ctx");
+  ctx.drawImage(bitmap, 0, 0, w, h);
+
+  const quality = 0.76;
   try {
     return canvas.toDataURL("image/webp", quality);
   } catch {
@@ -424,47 +502,55 @@ function ensureChart() {
   if (!canvas) return null;
   if (chart) return chart;
 
+  // Chart.js 可能因离线/资源加载失败而未定义；容错跳过图表渲染。
+  if (typeof Chart === "undefined") return null;
+
   const ctx = canvas.getContext("2d");
-  chart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: [],
-      datasets: [
-        {
-          label: "体重（kg）",
-          data: [],
-          borderColor: "rgba(125,211,252,.95)",
-          backgroundColor: "rgba(125,211,252,.16)",
-          pointRadius: 3,
-          pointHoverRadius: 4,
-          borderWidth: 2,
-          tension: 0.25,
-        },
-        {
-          label: "目标体重（kg）",
-          data: [],
-          borderColor: "rgba(167,243,208,.65)",
-          borderDash: [6, 6],
-          pointRadius: 0,
-          borderWidth: 2,
-          tension: 0,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true, labels: { boxWidth: 10, boxHeight: 10 } },
-        tooltip: { intersect: false, mode: "index" },
+  try {
+    chart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: "体重（kg）",
+            data: [],
+            borderColor: "rgba(125,211,252,.95)",
+            backgroundColor: "rgba(125,211,252,.16)",
+            pointRadius: 3,
+            pointHoverRadius: 4,
+            borderWidth: 2,
+            tension: 0.25,
+          },
+          {
+            label: "目标体重（kg）",
+            data: [],
+            borderColor: "rgba(167,243,208,.65)",
+            borderDash: [6, 6],
+            pointRadius: 0,
+            borderWidth: 2,
+            tension: 0,
+          },
+        ],
       },
-      interaction: { intersect: false, mode: "index" },
-      scales: {
-        x: { grid: { display: false } },
-        y: { grid: { color: "rgba(255,255,255,.08)" } },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, labels: { boxWidth: 10, boxHeight: 10 } },
+          tooltip: { intersect: false, mode: "index" },
+        },
+        interaction: { intersect: false, mode: "index" },
+        scales: {
+          x: { grid: { display: false } },
+          y: { grid: { color: "rgba(255,255,255,.08)" } },
+        },
       },
-    },
-  });
+    });
+  } catch {
+    chart = null;
+    return null;
+  }
   return chart;
 }
 
@@ -501,7 +587,10 @@ function exportCsv() {
     const bmi = profile ? calcBmi(e.weightKg, profile.heightCm) : NaN;
     const d = deltas[e.date];
     const deltaCell = d === null ? "" : String(round1(d));
-    lines.push([e.date, round1(e.weightKg), isFinite(bmi) ? fmt1(bmi) : "", deltaCell].join(","));
+    // Excel 里出现 “#######” 通常是把日期当作数值/日期格式显示不下。
+    // 这里强制把日期列导出为“文本”，避免被自动格式化。
+    const dateCell = `\t${e.date}`;
+    lines.push([dateCell, round1(e.weightKg), isFinite(bmi) ? fmt1(bmi) : "", deltaCell].join(","));
   }
 
   const content = "\uFEFF" + lines.join("\r\n");
@@ -516,10 +605,140 @@ function exportCsv() {
   URL.revokeObjectURL(url);
 }
 
+function parseCsvLine(line) {
+  const out = [];
+  let cur = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      const next = line[i + 1];
+      if (inQuotes && next === '"') {
+        cur += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+    if (ch === "," && !inQuotes) {
+      out.push(cur);
+      cur = "";
+      continue;
+    }
+    cur += ch;
+  }
+  out.push(cur);
+  return out.map((s) => s.trim());
+}
+
+function normalizeDateKey(s) {
+  const t = String(s ?? "").trim().replace(/^\uFEFF/, "");
+  const noCtrl = t.replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
+  const noTab = noCtrl.replace(/^\t+/, "").trim();
+  const m = noTab.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/);
+  if (!m) return "";
+  const y = m[1];
+  const mm = String(m[2]).padStart(2, "0");
+  const dd = String(m[3]).padStart(2, "0");
+  const key = `${y}-${mm}-${dd}`;
+  return isValidDateKey(key) ? key : "";
+}
+
+function importCsvText(text) {
+  const raw = String(text ?? "").replace(/^\uFEFF/, "");
+  const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) return { added: 0, updated: 0 };
+
+  let startIdx = 0;
+  const header = parseCsvLine(lines[0]).join(",");
+  if (header.includes("日期") && header.includes("体重")) startIdx = 1;
+
+  const byDate = new Map(store.entries.map((e) => [e.date, e]));
+  let added = 0;
+  let updated = 0;
+
+  for (let i = startIdx; i < lines.length; i++) {
+    const cols = parseCsvLine(lines[i]);
+    if (cols.length < 2) continue;
+    const date = normalizeDateKey(cols[0]);
+    if (!date) continue;
+    const weightKg = toNumber(cols[1]);
+    if (!isFinite(weightKg)) continue;
+
+    const existing = byDate.get(date);
+    const entry = { date, weightKg, createdAt: existing?.createdAt ?? Date.now() };
+    if (existing) updated++;
+    else added++;
+    byDate.set(date, entry);
+  }
+
+  store = { ...store, entries: dedupeByDate(Array.from(byDate.values())) };
+  saveStore(store);
+  return { added, updated };
+}
+
 function wireEvents() {
   btnAvatar.addEventListener("click", () => {
     inAvatar.click();
   });
+
+  if (btnBg && inBg) {
+    btnBg.addEventListener("click", () => {
+      if (!bgMenu) return;
+      bgMenu.hidden = false;
+      bgMenu.setAttribute("aria-hidden", "false");
+      // Focus the primary action for better keyboard accessibility.
+      btnChooseBg?.focus?.();
+    });
+    const hideMenu = () => {
+      if (!bgMenu) return;
+      bgMenu.hidden = true;
+      bgMenu.setAttribute("aria-hidden", "true");
+    };
+
+    if (btnChooseBg) {
+      btnChooseBg.addEventListener("click", () => {
+        hideMenu();
+        inBg.click();
+      });
+    }
+
+    if (btnResetBg) {
+      btnResetBg.addEventListener("click", () => {
+        saveBgImage("");
+        renderBgImage();
+        hideMenu();
+        toast("已恢复默认网页背景。");
+      });
+    }
+
+    if (btnCloseBg) {
+      btnCloseBg.addEventListener("click", () => hideMenu());
+    }
+
+    // Click outside panel closes menu.
+    if (bgMenu) {
+      bgMenu.addEventListener("click", (ev) => {
+        if (!(ev.target instanceof HTMLElement)) return;
+        if (ev.target.id === "bgMenu") hideMenu();
+      });
+    }
+
+    inBg.addEventListener("change", async () => {
+      const file = inBg.files && inBg.files[0];
+      inBg.value = "";
+      if (!file) return;
+      try {
+        const dataUrl = await fileToBgDataUrl(file);
+        saveBgImage(dataUrl);
+        renderBgImage();
+        toast("网页背景已更新。");
+      } catch {
+        toast("这张背景照片好像不太能用，换一张试试。");
+      }
+    });
+  }
 
   inAvatar.addEventListener("change", async () => {
     const file = inAvatar.files && inAvatar.files[0];
@@ -541,7 +760,7 @@ function wireEvents() {
 
     const profile = {
       heightCm: toNumber(inHeight.value),
-      startWeightKg: toNumber(inStart.value),
+      startWeightKg: String(inStart.value ?? "").trim() ? toNumber(inStart.value) : null,
       targetWeightKg: toNumber(inTarget.value),
       updatedAt: Date.now(),
     };
@@ -600,6 +819,24 @@ function wireEvents() {
     exportCsv();
   });
 
+  btnImportCsv.addEventListener("click", () => {
+    inImportCsv.click();
+  });
+
+  inImportCsv.addEventListener("change", async () => {
+    const file = inImportCsv.files && inImportCsv.files[0];
+    inImportCsv.value = "";
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const { added, updated } = importCsvText(text);
+      toast(`导入完成：新增 ${added} 条，更新 ${updated} 条。`);
+      renderAll();
+    } catch {
+      toast("导入失败：请确认这是 CSV 文件。");
+    }
+  });
+
   btnClearAll.addEventListener("click", () => {
     if (!store.profile && !store.entries.length) {
       toast("已经是空的了。");
@@ -631,7 +868,12 @@ function renderAll() {
   renderProfileForm();
   renderEntryForm();
   renderMetricsAndMood();
-  renderChart();
+  // 图表渲染失败不应影响历史表格与数据展示。
+  try {
+    renderChart();
+  } catch {
+    // 保持静默即可，用户仍能看到历史记录。
+  }
   renderHistoryTable();
 }
 
@@ -644,6 +886,7 @@ function init() {
   }
   wireEvents();
   renderAvatar();
+  renderBgImage();
   renderAll();
 }
 

@@ -24,12 +24,24 @@
             <img class="logoImg" id="avatarImg" alt="头像" />
             <span class="logoFallback" id="avatarFallback" aria-hidden="true">今</span>
           </button>
+          <button class="bgBtn" id="bgBtn" type="button" title="更改网页背景">背景</button>
           <input
             id="avatarInput"
             class="srOnly"
             type="file"
             accept="image/*"
           />
+          <input id="bgInput" class="srOnly" type="file" accept="image/*" />
+          <div id="bgMenu" class="bgMenu" hidden aria-hidden="true">
+            <div class="bgMenuPanel" role="dialog" aria-modal="true" aria-labelledby="bgMenuTitle">
+              <div class="bgMenuTitle" id="bgMenuTitle">背景</div>
+              <div class="bgMenuActions">
+                <button class="bgMenuBtn" id="bgChooseBtn" type="button">选择照片</button>
+                <button class="bgMenuBtn bgMenuBtnGhost" id="bgResetBtn" type="button">恢复默认背景</button>
+                <button class="bgMenuBtn bgMenuBtnCancel" id="bgCloseBtn" type="button">取消</button>
+              </div>
+            </div>
+          </div>
           <div class="brandText">
             <h1 class="title">今天练了吗</h1>
             <p class="subtitle" id="moodLine">慢慢来，也是在前进。</p>
@@ -37,6 +49,8 @@
         </div>
         <div class="headerActions">
           <button class="btn btnGhost" id="btnExportCsv" type="button">导出 CSV</button>
+          <button class="btn btnGhost" id="btnImportCsv" type="button">导入 CSV</button>
+          <input id="importCsvInput" class="srOnly" type="file" accept=".csv,text/csv" />
           <button class="btn btnDanger btnGhost" id="btnClearAll" type="button">清空记录</button>
         </div>
       </header>
