@@ -140,10 +140,12 @@ function ensureChartLibLoaded() {
     });
   }
 
+  // 线上仓库若未提交 vendor/，先请求本地会 404；CDN 优先可立即出图，vendor 作离线兜底
   const urls = [
-    new URL("vendor/chart.umd.min.js", document.baseURI).href,
     "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js",
     "https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js",
+    "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js",
+    new URL("vendor/chart.umd.min.js", document.baseURI).href,
   ];
 
   return (async () => {

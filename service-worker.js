@@ -1,9 +1,12 @@
 /* eslint-disable no-restricted-globals */
 
 // Update this string to bust the cache on new releases.
-const CACHE_VERSION = "jlm-pwa-v6";
+const CACHE_VERSION = "jlm-pwa-v7";
 
-/** 与 install 时 cache.addAll 使用的一致（相对当前 SW 脚本 URL） */
+/**
+ * 预缓存列表（相对当前 SW 脚本 URL）。
+ * 不用 cache.addAll：任一资源 404（例如未提交 vendor/）会导致整次安装失败，线上 PWA 易半残。
+ */
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -23,6 +26,21 @@ const APP_SHELL = [
   "./assets/icons/maskable-512-v3.png",
   "./assets/icons/apple-touch-icon-v3.png",
 ];
+
+/**
+ * @param {Cache} cache
+ */
+async function precacheAppShellSafe(cache) {
+  for (const rel of APP_SHELL) {
+    try {
+      const url = new URL(rel, self.location).href;
+      const res = await fetch(url);
+      if (res.ok) await cache.put(url, res);
+    } catch {
+      /* 缺失文件不阻断 SW 安装 */
+    }
+  }
+}
 
 /**
  * GitHub Pages 项目页 pathname 形如 /仓库名/vendor/chart.umd.min.js，
@@ -47,7 +65,7 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_VERSION);
-      await cache.addAll(APP_SHELL);
+      await precacheAppShellSafe(cache);
       self.skipWaiting();
     })()
   );
