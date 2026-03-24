@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 
 // Update this string to bust the cache on new releases.
-const CACHE_VERSION = "jlm-pwa-v7";
+const CACHE_VERSION = "jlm-pwa-v8";
 
 /**
  * 预缓存列表（相对当前 SW 脚本 URL）。
@@ -124,7 +124,11 @@ self.addEventListener("fetch", (event) => {
       } catch {
         const cached = await cache.match(req);
         if (cached) return cached;
-        throw new Error("offline");
+        return new Response("Offline and no cached response.", {
+          status: 503,
+          statusText: "Service Unavailable",
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
       }
     })()
   );

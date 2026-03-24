@@ -60,6 +60,31 @@ body{
   padding:22px 16px 36px;
 }
 
+.installBanner{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:12px;
+  padding:10px 12px;
+  border:1px solid var(--border);
+  border-radius:var(--radius2);
+  background:linear-gradient(135deg, rgba(125,211,252,.14), rgba(167,243,208,.10));
+  box-shadow:var(--shadow);
+}
+.installBannerText{
+  font-size:13px;
+  color:var(--muted);
+}
+.installBannerActions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+#installBanner[hidden]{
+  display:none !important;
+}
+
 .header{
   display:flex;
   align-items:flex-start;
@@ -430,6 +455,12 @@ body{
 .linkBtn:hover{background:rgba(255,255,255,.04); color:var(--text)}
 .linkBtn.danger{color:rgba(251,113,133,.95)}
 
+.historyMoreBar{
+  padding:8px 2px 2px;
+  text-align:center;
+}
+#historyMoreBar:not([hidden]){display:block}
+
 .footer{margin-top:14px}
 .footerInner{
   display:flex;
@@ -444,5 +475,9 @@ body{
   .metrics{grid-template-columns:1fr}
   .header{flex-direction:column; align-items:stretch}
   .headerActions{justify-content:flex-start}
+  .installBanner{
+    flex-direction:column;
+    align-items:flex-start;
+  }
 }
 

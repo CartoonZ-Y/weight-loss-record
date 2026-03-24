@@ -18,6 +18,13 @@
   <body>
     <div class="bg"></div>
     <main class="container" id="app">
+      <div class="installBanner" id="installBanner" hidden>
+        <span class="installBannerText">可添加到主屏幕，离线也能用。</span>
+        <div class="installBannerActions">
+          <button class="btn" id="installBannerInstall" type="button">安装</button>
+          <button class="btn btnGhost" id="installBannerLater" type="button">稍后</button>
+        </div>
+      </div>
       <header class="header">
         <div class="brand">
           <button class="settingsBtn" id="settingsBtn" type="button" title="设置">
@@ -164,6 +171,9 @@
               </tr>
             </tbody>
           </table>
+        </div>
+        <div class="historyMoreBar" id="historyMoreBar" hidden>
+          <button class="linkBtn" id="historyMoreBtn" type="button"></button>
         </div>
       </section>
 

@@ -282,12 +282,21 @@ const metricToGoalSub = $("metricToGoalSub");
 const chartMeta = $("chartMeta");
 const historyMeta = $("historyMeta");
 const historyTbody = $("historyTbody");
+const historyMoreBar = $("historyMoreBar");
+const historyMoreBtn = $("historyMoreBtn");
+const installBanner = $("installBanner");
+const installBannerInstall = $("installBannerInstall");
+const installBannerLater = $("installBannerLater");
 
 /** @type {Store} */
 let store = loadStore();
 
 /** @type {Chart|null} */
 let chart = null;
+
+/** 历史记录表格默认显示最近 10 条 */
+let showAllHistory = false;
+let installPromptEvent = null;
 
 function loadAvatar() {
   try {
@@ -509,11 +518,15 @@ function renderHistoryTable() {
 
   if (!rows.length) {
     historyTbody.innerHTML = `<tr><td colspan="5" class="empty">还没有记录。今天就从一次小小的开始。</td></tr>`;
+    historyMoreBar.hidden = true;
     return;
   }
 
+  const total = rows.length;
+  const displayRows = showAllHistory ? rows : rows.slice(0, 10);
+
   const heightCm = profile ? profile.heightCm : NaN;
-  const html = rows
+  const html = displayRows
     .map((e) => {
       const bmi = profile ? calcBmi(e.weightKg, heightCm) : NaN;
       const d = deltas[e.date];
@@ -535,6 +548,53 @@ function renderHistoryTable() {
     .join("");
 
   historyTbody.innerHTML = html;
+
+  // Toggle button：超过 10 条时才出现
+  if (total > 10) {
+    historyMoreBar.hidden = false;
+    historyMoreBtn.textContent = showAllHistory ? `↑ 收起` : `↓ 查看全部 ${total} 条`;
+  } else {
+    historyMoreBar.hidden = true;
+  }
+}
+
+function toggleHistoryView() {
+  showAllHistory = !showAllHistory;
+  renderHistoryTable();
+}
+
+function wireInstallPrompt() {
+  if (!installBanner || !installBannerInstall || !installBannerLater) return;
+
+  window.addEventListener("beforeinstallprompt", (ev) => {
+    ev.preventDefault();
+    installPromptEvent = ev;
+    if (localStorage.getItem("jlm_pwa_install_dismissed_v1") !== "1") {
+      installBanner.hidden = false;
+    }
+  });
+
+  window.addEventListener("appinstalled", () => {
+    installPromptEvent = null;
+    installBanner.hidden = true;
+  });
+
+  installBannerInstall.addEventListener("click", async () => {
+    if (!installPromptEvent) return;
+    installPromptEvent.prompt();
+    try {
+      await installPromptEvent.userChoice;
+    } catch {
+      /* ignore */
+    }
+    installPromptEvent = null;
+    installBanner.hidden = true;
+  });
+
+  installBannerLater.addEventListener("click", () => {
+    localStorage.setItem("jlm_pwa_install_dismissed_v1", "1");
+    installBanner.hidden = true;
+  });
 }
 
 function ensureChart() {
@@ -910,6 +970,8 @@ function wireEvents() {
     toast("已删除一条记录。");
     renderAll();
   });
+
+  historyMoreBtn.addEventListener("click", toggleHistoryView);
 }
 
 function renderAll() {
@@ -932,6 +994,7 @@ async function init() {
     inTarget.value = String(store.profile.targetWeightKg);
   }
   wireEvents();
+  wireInstallPrompt();
   renderAvatar();
   renderBgImage();
   await ensureChartLibLoaded();

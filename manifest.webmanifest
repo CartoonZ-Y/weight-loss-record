@@ -1,8 +1,8 @@
 {
-  "name": "今天练了吗",
-  "short_name": "练了吗",
+  "name": "Record",
+  "short_name": "Record",
   "description": "减脂期间体重记录：BMI、趋势图、历史表格与 CSV 导出。",
-  "start_url": "./index.html",
+  "start_url": ".",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0b1020",
