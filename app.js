@@ -569,6 +569,14 @@ function renderChart() {
   }
 
   c.update();
+  // 移动端 / GitHub Pages 首次布局完成后父级高度才稳定，补一次 resize 避免画布高度为 0
+  requestAnimationFrame(() => {
+    try {
+      c.resize();
+    } catch (_) {
+      /* ignore */
+    }
+  });
 }
 
 function exportCsv() {

@@ -1,8 +1,9 @@
 /* eslint-disable no-restricted-globals */
 
 // Update this string to bust the cache on new releases.
-const CACHE_VERSION = "jlm-pwa-v4";
+const CACHE_VERSION = "jlm-pwa-v5";
 
+/** 与 install 时 cache.addAll 使用的一致（相对当前 SW 脚本 URL） */
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -22,6 +23,25 @@ const APP_SHELL = [
   "./assets/icons/maskable-512-v3.png",
   "./assets/icons/apple-touch-icon-v3.png",
 ];
+
+/**
+ * GitHub Pages 项目页 pathname 形如 /仓库名/vendor/chart.umd.min.js，
+ * 不能再用 "./vendor/..." 与 APP_SHELL 直接字符串相等判断。
+ */
+function isAppShellAssetPath(pathname) {
+  const p = pathname.replace(/\/+$/, "") || "/";
+  const segs = p.split("/").filter(Boolean);
+  const last = segs[segs.length - 1] || "";
+  const last2 = segs.length >= 2 ? `${segs[segs.length - 2]}/${last}` : last;
+  if (last === "index.html" || last === "styles.css" || last === "app.js" || last === "manifest.webmanifest")
+    return true;
+  if (last2 === "vendor/chart.umd.min.js") return true;
+  if (last.endsWith(".svg") || last.endsWith(".png")) {
+    const i = segs.indexOf("assets");
+    return i >= 0 && segs[i + 1] === "icons";
+  }
+  return false;
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -43,24 +63,18 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-/**
- * Cache strategy:
- * - App shell: cache-first
- * - Navigation: serve index.html from cache (offline-friendly SPA-ish)
- */
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // Only handle same-origin requests.
   if (url.origin !== self.location.origin) return;
 
-  // Treat navigations as app shell.
   if (req.mode === "navigate") {
     event.respondWith(
       (async () => {
         const cache = await caches.open(CACHE_VERSION);
-        const cached = await cache.match("./index.html");
+        const indexUrl = new URL("index.html", self.registration.scope).href;
+        const cached = await cache.match(indexUrl);
         if (cached) return cached;
         return fetch(req);
       })()
@@ -68,23 +82,20 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-first for known assets.
-  const path = url.pathname.replace(/^\//, "./");
-  if (APP_SHELL.includes(path)) {
+  if (isAppShellAssetPath(url.pathname)) {
     event.respondWith(
       (async () => {
         const cache = await caches.open(CACHE_VERSION);
         const cached = await cache.match(req);
         if (cached) return cached;
         const res = await fetch(req);
-        cache.put(req, res.clone());
+        if (res.ok) cache.put(req, res.clone());
         return res;
       })()
     );
     return;
   }
 
-  // Default: network-first with cache fallback.
   event.respondWith(
     (async () => {
       const cache = await caches.open(CACHE_VERSION);
@@ -100,4 +111,3 @@ self.addEventListener("fetch", (event) => {
     })()
   );
 });
-

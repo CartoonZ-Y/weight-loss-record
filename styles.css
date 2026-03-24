@@ -369,6 +369,10 @@ body{
   background:rgba(255,255,255,.03);
   padding:10px;
   overflow:hidden;
+  /* Chart.js：responsive + maintainAspectRatio:false 时父级必须有高度，否则 iOS/Safari 上画布常为 0 高 → 空白 */
+  position:relative;
+  min-height:260px;
+  height:280px;
 }
 
 .tableWrap{
