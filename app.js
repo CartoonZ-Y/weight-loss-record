@@ -117,6 +117,47 @@ function isValidDateKey(s) {
   return /^\d{4}-\d{2}-\d{2}$/.test(s);
 }
 
+/**
+ * GitHub Pages 上常见：外链 Chart 用 onerror 改 src 会异步重载，而 defer 的 app.js 已先执行，
+ * ensureChart 因 Chart 未定义直接放弃。此处按序注入并 await，保证首屏渲染前库已就绪。
+ * @returns {Promise<void>}
+ */
+function ensureChartLibLoaded() {
+  if (typeof Chart !== "undefined") return Promise.resolve();
+
+  /** @param {string} src */
+  function tryLoadChartScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = src;
+      s.crossOrigin = "anonymous";
+      s.onload = () => {
+        if (typeof Chart !== "undefined") resolve();
+        else reject(new Error("chart_missing"));
+      };
+      s.onerror = () => reject(new Error("chart_load_error"));
+      document.head.appendChild(s);
+    });
+  }
+
+  const urls = [
+    new URL("vendor/chart.umd.min.js", document.baseURI).href,
+    "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js",
+    "https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js",
+  ];
+
+  return (async () => {
+    for (const u of urls) {
+      if (typeof Chart !== "undefined") return;
+      try {
+        await tryLoadChartScript(u);
+      } catch {
+        /* try next */
+      }
+    }
+  })();
+}
+
 /** @param {Profile} profile */
 function validateProfile(profile) {
   const errors = {};
@@ -881,7 +922,7 @@ function renderAll() {
   renderHistoryTable();
 }
 
-function init() {
+async function init() {
   inDate.value = todayKey();
   if (store.profile) {
     inHeight.value = String(store.profile.heightCm);
@@ -891,9 +932,11 @@ function init() {
   wireEvents();
   renderAvatar();
   renderBgImage();
-  // Ensure chart is initialized BEFORE the first renderAll so the canvas exists.
+  await ensureChartLibLoaded();
   ensureChart();
   renderAll();
 }
 
-document.addEventListener("DOMContentLoaded", init);
+document.addEventListener("DOMContentLoaded", () => {
+  void init();
+});

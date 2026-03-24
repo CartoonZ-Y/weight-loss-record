@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 
 // Update this string to bust the cache on new releases.
-const CACHE_VERSION = "jlm-pwa-v5";
+const CACHE_VERSION = "jlm-pwa-v6";
 
 /** 与 install 时 cache.addAll 使用的一致（相对当前 SW 脚本 URL） */
 const APP_SHELL = [
