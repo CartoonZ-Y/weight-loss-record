@@ -194,18 +194,20 @@ const elMoodLine = $("moodLine");
 const elProfileStatus = $("profileStatus");
 const elTodayStatus = $("todayStatus");
 
-const btnAvatar = $("avatarBtn");
 const inAvatar = $("avatarInput");
 const imgAvatar = $("avatarImg");
 const spanAvatarFallback = $("avatarFallback");
 
-const btnBg = $("bgBtn");
 const inBg = $("bgInput");
 const elBg = document.querySelector(".bg");
-const bgMenu = $("bgMenu");
-const btnChooseBg = $("bgChooseBtn");
-const btnResetBg = $("bgResetBtn");
-const btnCloseBg = $("bgCloseBtn");
+
+const settingsMenu = $("settingsMenu");
+const settingsMenuOverlay = $("settingsMenuOverlay");
+const btnSettings = $("settingsBtn");
+const btnChangeAvatar = $("btnChangeAvatar");
+const btnChangeBg = $("btnChangeBg");
+const btnResetBg = $("btnResetBg");
+const btnCloseSettings = $("btnCloseSettings");
 
 const profileForm = $("profileForm");
 const entryForm = $("entryForm");
@@ -290,14 +292,11 @@ function renderBgImage() {
   const dataUrl = loadBgImage();
   if (!elBg) return;
   if (!dataUrl) {
-    // Clear inline override to let CSS default gradient apply.
     elBg.style.removeProperty("background");
     elBg.style.removeProperty("backgroundBlendMode");
     elBg.style.removeProperty("filter");
     return;
   }
-
-  // Use a dark overlay to keep text readable.
   elBg.style.backgroundBlendMode = "multiply";
   elBg.style.background =
     `linear-gradient(180deg, rgba(11,16,32,.35), rgba(11,16,32,.72)), url(${dataUrl}) center/cover no-repeat`;
@@ -331,7 +330,6 @@ async function fileToBgDataUrl(file) {
   if (!file || !file.type || !file.type.startsWith("image/")) throw new Error("not_image");
 
   const bitmap = await createImageBitmap(file);
-  // Keep payload smaller to avoid localStorage limits on iOS.
   const maxSide = 1024;
   const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
   const w = Math.max(1, Math.round(bitmap.width * scale));
@@ -502,7 +500,6 @@ function ensureChart() {
   if (!canvas) return null;
   if (chart) return chart;
 
-  // Chart.js 可能因离线/资源加载失败而未定义；容错跳过图表渲染。
   if (typeof Chart === "undefined") return null;
 
   const ctx = canvas.getContext("2d");
@@ -587,8 +584,6 @@ function exportCsv() {
     const bmi = profile ? calcBmi(e.weightKg, profile.heightCm) : NaN;
     const d = deltas[e.date];
     const deltaCell = d === null ? "" : String(round1(d));
-    // Excel 里出现 “#######” 通常是把日期当作数值/日期格式显示不下。
-    // 这里强制把日期列导出为“文本”，避免被自动格式化。
     const dateCell = `\t${e.date}`;
     lines.push([dateCell, round1(e.weightKg), isFinite(bmi) ? fmt1(bmi) : "", deltaCell].join(","));
   }
@@ -678,68 +673,56 @@ function importCsvText(text) {
   return { added, updated };
 }
 
+function hideSettingsMenu() {
+  if (!settingsMenu) return;
+  settingsMenu.hidden = true;
+  settingsMenu.setAttribute("aria-hidden", "true");
+}
+
 function wireEvents() {
-  btnAvatar.addEventListener("click", () => {
-    inAvatar.click();
-  });
-
-  if (btnBg && inBg) {
-    btnBg.addEventListener("click", () => {
-      if (!bgMenu) return;
-      bgMenu.hidden = false;
-      bgMenu.setAttribute("aria-hidden", "false");
-      // Focus the primary action for better keyboard accessibility.
-      btnChooseBg?.focus?.();
-    });
-    const hideMenu = () => {
-      if (!bgMenu) return;
-      bgMenu.hidden = true;
-      bgMenu.setAttribute("aria-hidden", "true");
-    };
-
-    if (btnChooseBg) {
-      btnChooseBg.addEventListener("click", () => {
-        hideMenu();
-        inBg.click();
-      });
-    }
-
-    if (btnResetBg) {
-      btnResetBg.addEventListener("click", () => {
-        saveBgImage("");
-        renderBgImage();
-        hideMenu();
-        toast("已恢复默认网页背景。");
-      });
-    }
-
-    if (btnCloseBg) {
-      btnCloseBg.addEventListener("click", () => hideMenu());
-    }
-
-    // Click outside panel closes menu.
-    if (bgMenu) {
-      bgMenu.addEventListener("click", (ev) => {
-        if (!(ev.target instanceof HTMLElement)) return;
-        if (ev.target.id === "bgMenu") hideMenu();
-      });
-    }
-
-    inBg.addEventListener("change", async () => {
-      const file = inBg.files && inBg.files[0];
-      inBg.value = "";
-      if (!file) return;
-      try {
-        const dataUrl = await fileToBgDataUrl(file);
-        saveBgImage(dataUrl);
-        renderBgImage();
-        toast("网页背景已更新。");
-      } catch {
-        toast("这张背景照片好像不太能用，换一张试试。");
-      }
+  // Unified settings menu
+  if (btnSettings) {
+    btnSettings.addEventListener("click", () => {
+      if (!settingsMenu) return;
+      settingsMenu.hidden = false;
+      settingsMenu.setAttribute("aria-hidden", "false");
+      btnChangeAvatar?.focus?.();
     });
   }
 
+  if (btnChangeAvatar) {
+    btnChangeAvatar.addEventListener("click", () => {
+      hideSettingsMenu();
+      inAvatar.click();
+    });
+  }
+
+  if (btnChangeBg) {
+    btnChangeBg.addEventListener("click", () => {
+      hideSettingsMenu();
+      inBg.click();
+    });
+  }
+
+  if (btnResetBg) {
+    btnResetBg.addEventListener("click", () => {
+      saveBgImage("");
+      renderBgImage();
+      hideSettingsMenu();
+      toast("已恢复默认网页背景。");
+    });
+  }
+
+  if (btnCloseSettings) {
+    btnCloseSettings.addEventListener("click", () => hideSettingsMenu());
+  }
+
+  // Click on overlay closes menu
+  if (settingsMenuOverlay) {
+    settingsMenuOverlay.addEventListener("click", () => hideSettingsMenu());
+  }
+
+  // Avatar input
   inAvatar.addEventListener("change", async () => {
     const file = inAvatar.files && inAvatar.files[0];
     inAvatar.value = "";
@@ -751,6 +734,21 @@ function wireEvents() {
       toast("头像已更新。");
     } catch {
       toast("这张照片好像不太能用，换一张试试。");
+    }
+  });
+
+  // Background input
+  inBg.addEventListener("change", async () => {
+    const file = inBg.files && inBg.files[0];
+    inBg.value = "";
+    if (!file) return;
+    try {
+      const dataUrl = await fileToBgDataUrl(file);
+      saveBgImage(dataUrl);
+      renderBgImage();
+      toast("网页背景已更新。");
+    } catch {
+      toast("这张背景照片好像不太能用，换一张试试。");
     }
   });
 
@@ -868,11 +866,10 @@ function renderAll() {
   renderProfileForm();
   renderEntryForm();
   renderMetricsAndMood();
-  // 图表渲染失败不应影响历史表格与数据展示。
   try {
     renderChart();
   } catch {
-    // 保持静默即可，用户仍能看到历史记录。
+    // keep silent
   }
   renderHistoryTable();
 }
@@ -887,8 +884,9 @@ function init() {
   wireEvents();
   renderAvatar();
   renderBgImage();
+  // Ensure chart is initialized BEFORE the first renderAll so the canvas exists.
+  ensureChart();
   renderAll();
 }
 
 document.addEventListener("DOMContentLoaded", init);
-

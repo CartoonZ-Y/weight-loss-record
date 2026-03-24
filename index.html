@@ -20,11 +20,7 @@
     <main class="container" id="app">
       <header class="header">
         <div class="brand">
-          <button class="logoBtn" id="avatarBtn" type="button" title="上传/更换照片">
-            <img class="logoImg" id="avatarImg" alt="头像" />
-            <span class="logoFallback" id="avatarFallback" aria-hidden="true">今</span>
-          </button>
-          <button class="bgBtn" id="bgBtn" type="button" title="更改网页背景">背景</button>
+          <button class="settingsBtn" id="settingsBtn" type="button" title="设置">⚙</button>
           <input
             id="avatarInput"
             class="srOnly"
@@ -32,13 +28,15 @@
             accept="image/*"
           />
           <input id="bgInput" class="srOnly" type="file" accept="image/*" />
-          <div id="bgMenu" class="bgMenu" hidden aria-hidden="true">
-            <div class="bgMenuPanel" role="dialog" aria-modal="true" aria-labelledby="bgMenuTitle">
-              <div class="bgMenuTitle" id="bgMenuTitle">背景</div>
-              <div class="bgMenuActions">
-                <button class="bgMenuBtn" id="bgChooseBtn" type="button">选择照片</button>
-                <button class="bgMenuBtn bgMenuBtnGhost" id="bgResetBtn" type="button">恢复默认背景</button>
-                <button class="bgMenuBtn bgMenuBtnCancel" id="bgCloseBtn" type="button">取消</button>
+          <div id="settingsMenu" class="settingsMenu" hidden aria-hidden="true">
+            <div class="settingsMenuOverlay" id="settingsMenuOverlay"></div>
+            <div class="settingsMenuPanel" role="dialog" aria-modal="true" aria-labelledby="settingsMenuTitle">
+              <div class="settingsMenuTitle" id="settingsMenuTitle">设置</div>
+              <div class="settingsMenuActions">
+                <button class="settingsMenuBtn" id="btnChangeAvatar" type="button">修改头像</button>
+                <button class="settingsMenuBtn" id="btnChangeBg" type="button">更改背景</button>
+                <button class="settingsMenuBtn settingsMenuBtnGhost" id="btnResetBg" type="button">恢复默认背景</button>
+                <button class="settingsMenuBtn settingsMenuBtnCancel" id="btnCloseSettings" type="button">取消</button>
               </div>
             </div>
           </div>
