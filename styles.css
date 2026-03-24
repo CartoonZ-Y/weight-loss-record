@@ -93,19 +93,37 @@ body{
   width:44px;
   height:44px;
   border-radius:14px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
   background:linear-gradient(135deg, rgba(125,211,252,.22), rgba(167,243,208,.18));
   border:1px solid var(--border);
   box-shadow:var(--shadow);
-  font-size:16px;
   padding:0;
   cursor:pointer;
+  position:relative;
+  overflow:hidden;
+  display:grid;
+  place-items:center;
 }
 .settingsBtn:hover{filter:saturate(1.05)}
 .settingsBtn:focus{outline:none; box-shadow:var(--ring)}
 .settingsBtn:active{transform:translateY(1px)}
+
+.settingsBtnAvatar{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius:inherit;
+  display:none;
+}
+
+.settingsBtnFallback{
+  font-weight:700;
+  font-size:14px;
+  color:var(--accent);
+  line-height:1;
+  user-select:none;
+}
 
 .settingsMenu{
   position:fixed;

@@ -195,15 +195,14 @@ const elProfileStatus = $("profileStatus");
 const elTodayStatus = $("todayStatus");
 
 const inAvatar = $("avatarInput");
-const imgAvatar = $("avatarImg");
-const spanAvatarFallback = $("avatarFallback");
-
 const inBg = $("bgInput");
 const elBg = document.querySelector(".bg");
 
 const settingsMenu = $("settingsMenu");
 const settingsMenuOverlay = $("settingsMenuOverlay");
 const btnSettings = $("settingsBtn");
+const settingsBtnAvatar = $("settingsBtnAvatar");
+const settingsBtnFallback = $("settingsBtnFallback");
 const btnChangeAvatar = $("btnChangeAvatar");
 const btnChangeBg = $("btnChangeBg");
 const btnResetBg = $("btnResetBg");
@@ -264,13 +263,13 @@ function saveAvatar(dataUrl) {
 function renderAvatar() {
   const dataUrl = loadAvatar();
   if (dataUrl) {
-    imgAvatar.src = dataUrl;
-    imgAvatar.style.display = "block";
-    spanAvatarFallback.style.display = "none";
+    settingsBtnAvatar.src = dataUrl;
+    settingsBtnAvatar.style.display = "block";
+    settingsBtnFallback.style.display = "none";
   } else {
-    imgAvatar.removeAttribute("src");
-    imgAvatar.style.display = "none";
-    spanAvatarFallback.style.display = "inline";
+    settingsBtnAvatar.removeAttribute("src");
+    settingsBtnAvatar.style.display = "none";
+    settingsBtnFallback.style.display = "inline";
   }
 }
 
